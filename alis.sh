@@ -325,7 +325,7 @@ function configure_reflector() {
 }
 
 function configure_time() {
-    timedatectl set-ntp true
+    hwclock --systohc
 }
 
 function prepare_partition() {
