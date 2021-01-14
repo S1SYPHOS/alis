@@ -312,7 +312,6 @@ function prepare() {
     print_step "prepare()"
 
     # configure_reflector
-    configure_time
     prepare_partition
     configure_network
     ask_passwords
@@ -322,10 +321,6 @@ function configure_reflector() {
     if [ "$REFLECTOR" == "false" ]; then
         systemctl stop reflector.service
     fi
-}
-
-function configure_time() {
-    hwclock --systohc
 }
 
 function prepare_partition() {
