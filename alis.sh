@@ -651,7 +651,7 @@ function install() {
 function configuration() {
     print_step "configuration()"
 
-    genfstab -U /mnt >> /mnt/etc/fstab
+    fstabgen -U /mnt >> /mnt/etc/fstab
 
     if [ -n "$SWAP_SIZE" ]; then
         echo "# swap" >> /mnt/etc/fstab
