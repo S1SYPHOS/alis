@@ -670,11 +670,11 @@ function configuration() {
         else
             sed -i 's/relatime/noatime/' /mnt/etc/fstab
         fi
-        arch-chroot /mnt systemctl enable fstrim.timer
+        #artix-chroot /mnt systemctl enable fstrim.timer
     fi
 
-    arch-chroot /mnt ln -s -f $TIMEZONE /etc/localtime
-    arch-chroot /mnt hwclock --systohc
+    artix-chroot /mnt ln -s -f $TIMEZONE /etc/localtime
+    artix-chroot /mnt hwclock --systohc
     for LOCALE in "${LOCALES[@]}"; do
         sed -i "s/#$LOCALE/$LOCALE/" /etc/locale.gen
         sed -i "s/#$LOCALE/$LOCALE/" /mnt/etc/locale.gen
@@ -684,7 +684,7 @@ function configuration() {
         echo -e "$VARIABLE" >> /mnt/etc/locale.conf
     done
     locale-gen
-    arch-chroot /mnt locale-gen
+    artix-chroot /mnt locale-gen
     echo -e "$KEYMAP\n$FONT\n$FONT_MAP" > /mnt/etc/vconsole.conf
     echo $HOSTNAME > /mnt/etc/hostname
 
@@ -702,7 +702,7 @@ function configuration() {
         OPTIONS="$OPTIONS"$'\n'"    Option \"XkbOptions\" \"$KEYOPTIONS\""
     fi
 
-    arch-chroot /mnt mkdir -p "/etc/X11/xorg.conf.d/"
+    artix-chroot /mnt mkdir -p "/etc/X11/xorg.conf.d/"
     cat <<EOT > /mnt/etc/X11/xorg.conf.d/00-keyboard.conf
 # Written by systemd-localed(8), read by systemd-localed and Xorg. It's
 # probably wise not to edit this file manually. Use localectl(1) to
@@ -718,7 +718,7 @@ EOT
         echo "vm.swappiness=10" > /mnt/etc/sysctl.d/99-sysctl.conf
     fi
 
-    printf "$ROOT_PASSWORD\n$ROOT_PASSWORD" | arch-chroot /mnt passwd
+    printf "$ROOT_PASSWORD\n$ROOT_PASSWORD" | artix-chroot /mnt passwd
 }
 
 function mkinitcpio_configuration() {
@@ -743,7 +743,7 @@ function mkinitcpio_configuration() {
                 MODULES="nouveau"
                 ;;
         esac
-        arch-chroot /mnt sed -i "s/^MODULES=()/MODULES=($MODULES)/" /etc/mkinitcpio.conf
+        artix-chroot /mnt sed -i "s/^MODULES=()/MODULES=($MODULES)/" /etc/mkinitcpio.conf
     fi
     if [ "$DISPLAY_DRIVER" == "intel" ]; then
         OPTIONS=""
@@ -793,10 +793,10 @@ function mkinitcpio_configuration() {
         fi
     fi
     HOOKS=$(sanitize_variable "$HOOKS")
-    arch-chroot /mnt sed -i "s/^HOOKS=(.*)$/HOOKS=($HOOKS)/" /etc/mkinitcpio.conf
+    artix-chroot /mnt sed -i "s/^HOOKS=(.*)$/HOOKS=($HOOKS)/" /etc/mkinitcpio.conf
 
     if [ "$KERNELS_COMPRESSION" != "" ]; then
-        arch-chroot /mnt sed -i 's/^#COMPRESSION="'"$KERNELS_COMPRESSION"'"/COMPRESSION="'"$KERNELS_COMPRESSION"'"/' /etc/mkinitcpio.conf
+        artix-chroot /mnt sed -i 's/^#COMPRESSION="'"$KERNELS_COMPRESSION"'"/COMPRESSION="'"$KERNELS_COMPRESSION"'"/' /etc/mkinitcpio.conf
     fi
 
     if [ "$KERNELS_COMPRESSION" == "bzip2" ]; then
@@ -990,14 +990,14 @@ function kernels() {
 function mkinitcpio() {
     print_step "mkinitcpio()"
 
-    arch-chroot /mnt mkinitcpio -P
+    artix-chroot /mnt mkinitcpio -P
 }
 
 function network() {
     print_step "network()"
 
-    pacman_install "networkmanager"
-    arch-chroot /mnt systemctl enable NetworkManager.service
+    pacman_install "connman-runit connman-gtk"
+    artix-chroot /mnt ln -s -f /etc/runit/sv/connmand /etc/runit/runsvdir/default
 }
 
 function virtualbox() {
@@ -1022,7 +1022,7 @@ function users() {
         create_user "${USER}" "${PASSWORD}"
     done
 
-	arch-chroot /mnt sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
+	artix-chroot /mnt sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/' /etc/sudoers
 
     pacman_install "xdg-user-dirs"
 
@@ -1069,7 +1069,7 @@ function create_user() {
     USER=$1
     PASSWORD=$2
     if [ "$SYSTEMD_HOMED" == "true" ]; then
-        arch-chroot /mnt systemctl enable systemd-homed.service
+        artix-chroot /mnt systemctl enable systemd-homed.service
         create_user_homectl $USER $PASSWORD
 #       create_user_useradd $USER $PASSWORD
     else
@@ -1116,8 +1116,8 @@ function create_user_homectl() {
 function create_user_useradd() {
     USER=$1
     PASSWORD=$2
-    arch-chroot /mnt useradd -m -G wheel,storage,optical -s /bin/bash $USER
-    printf "$PASSWORD\n$PASSWORD" | arch-chroot /mnt passwd $USER
+    artix-chroot /mnt useradd -m -G wheel,storage,optical -s /bin/bash $USER
+    printf "$PASSWORD\n$PASSWORD" | artix-chroot /mnt passwd $USER
 }
 
 function bootloader() {
@@ -1171,29 +1171,29 @@ function bootloader() {
             ;;
     esac
 
-    arch-chroot /mnt systemctl set-default multi-user.target
+    artix-chroot /mnt systemctl set-default multi-user.target
 }
 
 function bootloader_grub() {
     pacman_install "grub dosfstools"
-    arch-chroot /mnt sed -i 's/GRUB_DEFAULT=0/GRUB_DEFAULT=saved/' /etc/default/grub
-    arch-chroot /mnt sed -i 's/#GRUB_SAVEDEFAULT="true"/GRUB_SAVEDEFAULT="true"/' /etc/default/grub
-    arch-chroot /mnt sed -i -E 's/GRUB_CMDLINE_LINUX_DEFAULT="(.*) quiet"/GRUB_CMDLINE_LINUX_DEFAULT="\1"/' /etc/default/grub
-    arch-chroot /mnt sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="'"$CMDLINE_LINUX"'"/' /etc/default/grub
+    artix-chroot /mnt sed -i 's/GRUB_DEFAULT=0/GRUB_DEFAULT=saved/' /etc/default/grub
+    artix-chroot /mnt sed -i 's/#GRUB_SAVEDEFAULT="true"/GRUB_SAVEDEFAULT="true"/' /etc/default/grub
+    artix-chroot /mnt sed -i -E 's/GRUB_CMDLINE_LINUX_DEFAULT="(.*) quiet"/GRUB_CMDLINE_LINUX_DEFAULT="\1"/' /etc/default/grub
+    artix-chroot /mnt sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="'"$CMDLINE_LINUX"'"/' /etc/default/grub
     echo "" >> /mnt/etc/default/grub
     echo "# alis" >> /mnt/etc/default/grub
     echo "GRUB_DISABLE_SUBMENU=y" >> /mnt/etc/default/grub
 
     if [ "$BIOS_TYPE" == "uefi" ]; then
         pacman_install "efibootmgr"
-        arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub --efi-directory=$ESP_DIRECTORY --recheck
-        #arch-chroot /mnt efibootmgr --create --disk $DEVICE --part $PARTITION_BOOT_NUMBER --loader /EFI/grub/grubx64.efi --label "GRUB Boot Manager"
+        artix-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub --efi-directory=$ESP_DIRECTORY --recheck
+        #artix-chroot /mnt efibootmgr --create --disk $DEVICE --part $PARTITION_BOOT_NUMBER --loader /EFI/grub/grubx64.efi --label "GRUB Boot Manager"
     fi
     if [ "$BIOS_TYPE" == "bios" ]; then
-        arch-chroot /mnt grub-install --target=i386-pc --recheck $DEVICE
+        artix-chroot /mnt grub-install --target=i386-pc --recheck $DEVICE
     fi
 
-    arch-chroot /mnt grub-mkconfig -o "$BOOT_DIRECTORY/grub/grub.cfg"
+    artix-chroot /mnt grub-mkconfig -o "$BOOT_DIRECTORY/grub/grub.cfg"
 
     if [ "$VIRTUALBOX" == "true" ]; then
         echo -n "\EFI\grub\grubx64.efi" > "/mnt$ESP_DIRECTORY/startup.nsh"
@@ -1202,12 +1202,12 @@ function bootloader_grub() {
 
 function bootloader_refind() {
     pacman_install "refind-efi"
-    arch-chroot /mnt refind-install
+    artix-chroot /mnt refind-install
 
-    arch-chroot /mnt rm /boot/refind_linux.conf
-    arch-chroot /mnt sed -i 's/^timeout.*/timeout 5/' "$ESP_DIRECTORY/EFI/refind/refind.conf"
-    arch-chroot /mnt sed -i 's/^#scan_all_linux_kernels.*/scan_all_linux_kernels false/' "$ESP_DIRECTORY/EFI/refind/refind.conf"
-    #arch-chroot /mnt sed -i 's/^#default_selection "+,bzImage,vmlinuz"/default_selection "+,bzImage,vmlinuz"/' "$ESP_DIRECTORY/EFI/refind/refind.conf"
+    artix-chroot /mnt rm /boot/refind_linux.conf
+    artix-chroot /mnt sed -i 's/^timeout.*/timeout 5/' "$ESP_DIRECTORY/EFI/refind/refind.conf"
+    artix-chroot /mnt sed -i 's/^#scan_all_linux_kernels.*/scan_all_linux_kernels false/' "$ESP_DIRECTORY/EFI/refind/refind.conf"
+    #artix-chroot /mnt sed -i 's/^#default_selection "+,bzImage,vmlinuz"/default_selection "+,bzImage,vmlinuz"/' "$ESP_DIRECTORY/EFI/refind/refind.conf"
 
     REFIND_MICROCODE=""
 
@@ -1298,11 +1298,11 @@ EOT
 }
 
 function bootloader_systemd() {
-    arch-chroot /mnt systemd-machine-id-setup
-    arch-chroot /mnt bootctl --path="$ESP_DIRECTORY" install
+    artix-chroot /mnt systemd-machine-id-setup
+    artix-chroot /mnt bootctl --path="$ESP_DIRECTORY" install
 
-    arch-chroot /mnt mkdir -p "$ESP_DIRECTORY/loader/"
-    arch-chroot /mnt mkdir -p "$ESP_DIRECTORY/loader/entries/"
+    artix-chroot /mnt mkdir -p "$ESP_DIRECTORY/loader/"
+    artix-chroot /mnt mkdir -p "$ESP_DIRECTORY/loader/entries/"
 
     cat <<EOT > "/mnt$ESP_DIRECTORY/loader/loader.conf"
 # alis
@@ -1311,7 +1311,7 @@ default archlinux
 editor 0
 EOT
 
-    arch-chroot /mnt mkdir -p "/etc/pacman.d/hooks/"
+    artix-chroot /mnt mkdir -p "/etc/pacman.d/hooks/"
 
     cat <<EOT > "/mnt/etc/pacman.d/hooks/systemd-boot.hook"
 [Trigger]
@@ -1486,7 +1486,7 @@ function custom_shell_user() {
     if [ "$SYSTEMD_HOMED" == "true" ]; then
         homectl update --shell=$CUSTOM_SHELL_PATH $USER
     else
-        arch-chroot /mnt chsh -s $CUSTOM_SHELL_PATH $USER
+        artix-chroot /mnt chsh -s $CUSTOM_SHELL_PATH $USER
     fi
 }
 
@@ -1520,47 +1520,47 @@ function desktop_environment() {
             ;;
     esac
 
-    arch-chroot /mnt systemctl set-default graphical.target
+    artix-chroot /mnt systemctl set-default graphical.target
 }
 
 function desktop_environment_gnome() {
     pacman_install "gnome"
-    arch-chroot /mnt systemctl enable gdm.service
+    artix-chroot /mnt systemctl enable gdm.service
 }
 
 function desktop_environment_kde() {
     pacman_install "plasma-meta plasma-wayland-session kde-applications-meta"
-    arch-chroot /mnt systemctl enable sddm.service
+    artix-chroot /mnt systemctl enable sddm.service
 }
 
 function desktop_environment_xfce() {
     pacman_install "xfce4 xfce4-goodies lightdm lightdm-gtk-greeter xorg-server"
-    arch-chroot /mnt systemctl enable lightdm.service
+    artix-chroot /mnt systemctl enable lightdm.service
 }
 
 function desktop_environment_mate() {
     pacman_install "mate mate-extra lightdm lightdm-gtk-greeter xorg-server"
-    arch-chroot /mnt systemctl enable lightdm.service
+    artix-chroot /mnt systemctl enable lightdm.service
 }
 
 function desktop_environment_cinnamon() {
     pacman_install "cinnamon lightdm lightdm-gtk-greeter xorg-server"
-    arch-chroot /mnt systemctl enable lightdm.service
+    artix-chroot /mnt systemctl enable lightdm.service
 }
 
 function desktop_environment_lxde() {
     pacman_install "lxde lxdm"
-    arch-chroot /mnt systemctl enable lxdm.service
+    artix-chroot /mnt systemctl enable lxdm.service
 }
 
 function desktop_environment_i3_wm() {
     pacman_install "i3-wm i3blocks i3lock i3status dmenu rxvt-unicode lightdm lightdm-gtk-greeter xorg-server"
-    arch-chroot /mnt systemctl enable lightdm.service
+    artix-chroot /mnt systemctl enable lightdm.service
 }
 
 function desktop_environment_i3_gaps() {
     pacman_install "i3-gaps i3blocks i3lock i3status dmenu rxvt-unicode lightdm lightdm-gtk-greeter xorg-server"
-    arch-chroot /mnt systemctl enable lightdm.service
+    artix-chroot /mnt systemctl enable lightdm.service
 }
 
 function packages() {
@@ -1574,9 +1574,9 @@ function packages() {
 function vagrant() {
     pacman_install "openssh"
     create_user "vagrant" "vagrant"
-    arch-chroot /mnt systemctl enable sshd.service
-    arch-chroot /mnt ssh-keygen -A
-    arch-chroot /mnt sshd -t
+    artix-chroot /mnt systemctl enable sshd.service
+    artix-chroot /mnt ssh-keygen -A
+    artix-chroot /mnt sshd -t
 }
 
 function systemd_units() {
@@ -1596,7 +1596,7 @@ function systemd_units() {
         fi
 
         if [ -n "$ACTION" ]; then
-            arch-chroot /mnt systemctl $ACTION $UNIT
+            artix-chroot /mnt systemctl $ACTION $UNIT
         fi
     done
 }
@@ -1651,7 +1651,7 @@ function pacman_install() {
     IFS=' ' PACKAGES=($1)
     for VARIABLE in {1..5}
     do
-        arch-chroot /mnt pacman -Syu --noconfirm --needed ${PACKAGES[@]}
+        artix-chroot /mnt pacman -Syu --noconfirm --needed ${PACKAGES[@]}
         if [ $? == 0 ]; then
             ERROR="false"
             break
