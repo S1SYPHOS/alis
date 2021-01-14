@@ -1805,7 +1805,7 @@ function main() {
     if [ "$VAGRANT" == "true" ]; then
         execute_step "vagrant" "${STEPS}"
     fi
-    execute_step "systemd_units" "${STEPS}"
+    # execute_step "systemd_units" "${STEPS}"
     execute_step "end" "${STEPS}"
 }
 
