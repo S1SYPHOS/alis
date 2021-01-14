@@ -311,7 +311,7 @@ function check_facts() {
 function prepare() {
     print_step "prepare()"
 
-    configure_reflector
+    # configure_reflector
     configure_time
     prepare_partition
     configure_network
@@ -625,9 +625,9 @@ function partition() {
 function install() {
     print_step "install()"
 
-    if [ -n "$PACMAN_MIRROR" ]; then
-        echo "Server = $PACMAN_MIRROR" > /etc/pacman.d/mirrorlist
-    fi
+    #if [ -n "$PACMAN_MIRROR" ]; then
+    #    echo "Server = $PACMAN_MIRROR" > /etc/pacman.d/mirrorlist
+    #fi
     if [ "$REFLECTOR" == "true" ]; then
         COUNTRIES=()
         for COUNTRY in "${REFLECTOR_COUNTRIES[@]}"; do
@@ -640,7 +640,7 @@ function install() {
     sed -i 's/#Color/Color/' /etc/pacman.conf
     sed -i 's/#TotalDownload/TotalDownload/' /etc/pacman.conf
 
-    basestrap /mnt base base-devel linux linux-firmware
+    basestrap /mnt base base-devel linux linux-firmware runit elogind-runit
 
     sed -i 's/#Color/Color/' /mnt/etc/pacman.conf
     sed -i 's/#TotalDownload/TotalDownload/' /mnt/etc/pacman.conf

@@ -58,3 +58,5 @@ chmod +x alis-recovery-reboot.sh
 
 chmod +x alis-packages.sh
 chmod +x alis-packages-asciinema.sh
+
+pacman -Sy parted gdisk
